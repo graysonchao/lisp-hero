@@ -45,7 +45,9 @@ var Lq = (function() {
         this.evaluator = new Evaluator();
       }
       return this.evaluator();
-    }
+    },
+
+    garbage: []
   };
 
   lq.constants.ROW_HEIGHT = Math.floor((lq.constants.STAGE_HEIGHT) / lq.constants.NUM_ROWS);
@@ -89,6 +91,13 @@ var Token = function(token, x, y) {
 };
 
 var spawnToken = function(token, layer) {
+
+  if (Lq.garbage.length > 24) {
+    for (var i = 0; i < Lq.garbage.length; i++) {
+      Lq.garbage[i].destroy();
+    }
+    Lq.garbage = [];
+  }
   // Returns a random integer between min and max
   // Using Math.round() will give you a non-uniform distribution!
   // Thanx to mozilla dev network :3
@@ -104,9 +113,9 @@ var spawnToken = function(token, layer) {
   var tween = new Kinetic.Tween({
     node: token,
     duration: Math.floor(Lq.constants.STAGE_WIDTH / Lq.constants.TOKEN_SPEED),
-    x: -20,
+    x: -1 * (Lq.constants.SELECTOR_WIDTH),
     onFinish: function() {
-      token.destroy();
+      Lq.garbage.push(token); // to be destroy()'d
     }
   });
 
