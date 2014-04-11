@@ -1,0 +1,30 @@
+body {
+  background-image: url("../images/parens-pattern.png");
+  font-family: Courier New,monospace;
+}
+
+#container {
+  margin: 0 auto;
+  width: 60%;
+  text-align: center;
+}
+
+.text-box {
+  font-size: 18px;
+  background: #ccc;
+  height: 40px;
+  margin: 2px;
+}
+
+span {
+  line-height: 40px;
+}
+
+#kinetic-container {
+  display: inline-block;
+  height: 360px;
+}
+
+.score {
+  color: #00f;
+}
