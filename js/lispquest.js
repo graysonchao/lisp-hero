@@ -110,15 +110,7 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-window.setInterval(function() {
-  if (getRandomInt(0, 1) === 1) {
-    var num = getRandomInt(0, Lq.tokens.ops.length - 1);
-    spawnToken(Lq.tokens.ops[num], tokensLayer);
-  } else {
-    var num = getRandomInt(0, Lq.tokens.values.length - 1);
-    spawnToken(Lq.tokens.values[num], tokensLayer);
-  }
-}, 1000);
+window.setInterval(Lq.spawnToken(tokensLayer), 1000);
 
 bgLayer.draw();
 rowLayer.draw();

@@ -14,6 +14,7 @@ var Lq = (function() {
       SELECTOR_TOLERANCE: 20,
       TOKEN_FONT_SIZE: 48,
       TOKEN_SPEED: 240,
+      TOKEN_POOL_SIZE: 36,
       COLORS: {
         solarizedDark: {
           base03:    '#002b36',
@@ -39,6 +40,9 @@ var Lq = (function() {
       values: [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ],
       ops:    [ '+', '-', '*', '/', '^', ],
     },
+    tokenGrave: [],
+    tokenPool: [],
+
 
     getEvaluator: function() {
       if (!(this.evaluator)) {
@@ -47,7 +51,50 @@ var Lq = (function() {
       return this.evaluator();
     },
 
-    garbage: []
+    getRandomInt: function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    },
+
+    spawnToken: function(layer) {
+
+      if (Lq.tokenPool.length === 0) {
+        Lq.tokenPool = [];
+        var x = Lq.constants.STAGE_WIDTH;
+        var y = Lq.constants.ROW_HEIGHT *
+          Lq.getRandomInt(0, Lq.constants.NUM_ROWS - 1);
+
+        var random = Lq.getRandomInt(0, 1);
+        var tokenChar;
+        if (random === 1) {
+          var randomOp = Lq.getRandomInt(0, Lq.tokens.ops.length - 1);
+          tokenChar = Lq.tokens.ops[randomOp];
+        } else {
+          var randomValue = Lq.getRandomInt(0, Lq.tokens.ops.length - 1);
+          tokenChar = Lq.tokens.values[randomValue];
+        }
+
+
+        for (var i = 0; i < Lq.constants.TOKEN_POOL_SIZE; i++) {
+          var token = new Token(tokenChar, x, y);
+          Lq.tokenPool.push(token);
+        }
+
+      } else {
+        var token = Lq.tokenPool.pop();
+        layer.add(token);
+        token.lqTween.play();
+      }
+
+      // Clean up Kinetic stage
+      if (Lq.tokenGrave.length > Lq.constants.TOKEN_GRAVE_SIZE) {
+        for (var i = 0; i < Lq.tokenGrave.length; i++) {
+          Lq.tokenGrave[i].destroy();
+        }
+        Lq.tokenGrave = [];
+      }
+    }
+
+
   };
 
   lq.constants.ROW_HEIGHT = Math.floor((lq.constants.STAGE_HEIGHT) / lq.constants.NUM_ROWS);
@@ -84,43 +131,20 @@ var Token = function(token, x, y) {
     fontFamily:'Courier New,Consolas,Liberation Mono,Bitstream Vera Sans Mono, DejaVu Sans Mono, monospace',
   })
 
+  this.lqTween = new Kinetic.Tween({
+    node: this,
+    duration: Math.floor(Lq.constants.STAGE_WIDTH / Lq.constants.TOKEN_SPEED),
+    x: -1 * (Lq.constants.SELECTOR_WIDTH),
+    onFinish: function() {
+      Lq.tokensGrave.push(token); // to be destroy()'d
+    }
+  });
+
   this.group.add(this.rect);
   this.group.add(this.text);
   this.group.token = token;
   return this.group;
 };
-
-var spawnToken = function(token, layer) {
-
-  if (Lq.garbage.length > 24) {
-    for (var i = 0; i < Lq.garbage.length; i++) {
-      Lq.garbage[i].destroy();
-    }
-    Lq.garbage = [];
-  }
-  // Returns a random integer between min and max
-  // Using Math.round() will give you a non-uniform distribution!
-  // Thanx to mozilla dev network :3
-  function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  var y = Lq.constants.ROW_HEIGHT;
-  var token = new Token(token, Lq.constants.STAGE_WIDTH, Lq.constants.ROW_HEIGHT *
-                        getRandomInt(0, Lq.constants.NUM_ROWS - 1));
-  layer.add(token);
-
-  var tween = new Kinetic.Tween({
-    node: token,
-    duration: Math.floor(Lq.constants.STAGE_WIDTH / Lq.constants.TOKEN_SPEED),
-    x: -1 * (Lq.constants.SELECTOR_WIDTH),
-    onFinish: function() {
-      Lq.garbage.push(token); // to be destroy()'d
-    }
-  });
-
-  tween.play();
-}
 
 // Selector stuff
 
@@ -210,7 +234,7 @@ var Evaluator = function() {
       if (this.isValue())
         return false;
 
-      // sentinel node. it has the real root of the tree on its left.
+      // if this is a sentinel node, it has the "real" root of the tree on its left.
       if (this.token === 'S') {
         // Pass it to my child
         if (this.left) {
@@ -256,27 +280,25 @@ var Evaluator = function() {
 
       if (this.isValue()) {
         return parseInt(this.token, 10);
-      } else if (this.isOp()) {
+      } else if (this.isOp() && this.left && this.right) {
 
-        try {
-          if (this.token === "+") {
-            return this.left.eval() + this.right.eval();
+        if (this.token === "+") {
+          return this.left.eval() + this.right.eval();
 
-          } else if (this.token === "-") {
-            return this.left.eval() - this.right.eval();
+        } else if (this.token === "-") {
+          return this.left.eval() - this.right.eval();
 
-          } else if (this.token === "*") {
-            return this.left.eval() * this.right.eval();
+        } else if (this.token === "*") {
+          return this.left.eval() * this.right.eval();
 
-          } else if (this.token === "/") {
-            return this.left.eval() / this.right.eval();
+        } else if (this.token === "/") {
+          return this.left.eval() / this.right.eval();
 
-          } else if (this.token === "^") {
-            return Math.pow(this.left.eval(), this.right.eval());
-          }heh
-        } catch (e) { // lmbo
-          console.log("Can't eval");
+        } else if (this.token === "^") {
+          return Math.pow(this.left.eval(), this.right.eval());
         }
+      } else {
+        return 0;
       }
     }
 
